@@ -1,6 +1,5 @@
 import geopandas as gpd
 import pandas as pd
-import psycopg2
 from numpy.f2py.auxfuncs import throw_error
 
 
