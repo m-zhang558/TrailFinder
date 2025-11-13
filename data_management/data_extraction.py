@@ -21,5 +21,8 @@ converts MultiDiGraph to geopandas df and extracts nodes and edges
 return: (nodes, edges)
 """
 def convert_graph(raw_graph: nx.MultiDiGraph) -> (gpd.GeoDataFrame, gpd.GeoDataFrame):
-    return ox.graph_to_gdfs(raw_graph)
+    nodes, edges = ox.graph_to_gdfs(raw_graph)
+    drop = ['key', 'lanes', 'bridge', 'ref', 'service', 'junction', 'access', 'width', 'tunnel']
+    edges = edges.drop(drop, axis=1)
+    return nodes, edges
 
