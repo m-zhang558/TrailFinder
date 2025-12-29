@@ -8,7 +8,7 @@ supabase_url = os.getenv('SUPABASE_URL')
 supabase_key = os.getenv('API_KEY')
 
 
-url: str = os.environ.get(supabase_url)
-key: str = os.environ.get(supabase_key)
-supabase: Client = create_client(url, key)
+#url: str = os.environ.get(supabase_url)
+#key: str = os.environ.get(supabase_key)
+supabase: Client = create_client(supabase_url, supabase_key)
 

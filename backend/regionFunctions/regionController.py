@@ -1,34 +1,81 @@
-from fastapi import HTTPException, status, Request, Response
+from fastapi import HTTPException, status, Response
+from fastapi.responses import JSONResponse
+
+import osmnx as ox
+import numpy as np
 
 from backend.db import supabase
 from data_management import data_extraction
+from pydantic import BaseModel
 
-def add_region(request: Request) -> Response:
-    lat = request["lat"]
+class Region(BaseModel):
+    lat: float
+    long: float
+    radius: float | None = None
+    net_type: str | None = None
+
+async def add_region(region: Region) -> Response:
+    lat = region.lat
     if not lat:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Latitude is required")
-    long = request["long"]
+    long = region.long
     if not long:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Longitude is required")
-    radius = request["radius"]
+    radius = region.radius
     if not radius:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Radius is required")
-    net_type = request["net_type"]
+        radius = 500
+    net_type = region.net_type
     if not net_type:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Net type is required")
+        # need to add more thorough check for net_type
+        net_type = "walk"
     coords = (lat, long)
-    graph = data_extraction.get_graph(coords, radius, net_type)
+    try:
+        graph = data_extraction.get_graph(coords, radius, net_type)
+    except ox._errors.InsufficientResponseError:
+        raise HTTPException(
+            status_code=404,
+            detail="No map data found for the given location, radius, and network type."
+        )
     nodes, edges = data_extraction.convert_graph(graph)
 
-    if nodes.empty() or edges.empty():
+    if nodes.empty or edges.empty:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No nodes or edges found")
 
-    n_json = nodes.to_json(na='null', drop_id=True)
-    e_json = edges.to_json(na='null', drop_id=True)
+    n_dict = nodes.to_dict(orient='records')
+    e_dict = edges.to_dict(orient='records')
 
     try:
-        supabase.table("nodes").insert(n_json).execute()
-        supabase.table("edges").insert(e_json).execute()
+        supabase.table("nodes").upsert(n_dict, on_conflict="osmid").execute()
+        supabase.table("edges").insert(e_dict).execute()
         return Response(status_code=status.HTTP_201_CREATED)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to add region: {e}")
+
+
+    # Fix adding edges
+    # Fix adding duplicates
+
+async def get_region(region) -> Response:
+    lat = region.lat
+    if not lat:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Latitude is required")
+    long = region.long
+    if not long:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Longitude is required")
+    radius = region.radius
+    if not radius:
+        radius = 1000
+    try:
+        nodes = supabase.rpc("get_nodes", { "lat": lat, "lon": long, "radius": radius }).execute()
+        edges = supabase.rpc("get_edges", { "lat": lat, "lon": long, "radius": radius }).execute()
+        return JSONResponse(
+            status_code=200,
+            content={
+                "nodes": nodes.data,
+                "edges": edges.data
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to add region: {e}")
+
+
