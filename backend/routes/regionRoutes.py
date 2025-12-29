@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request
-import backend.regionFunctions.regionController as regionController
-from backend.regionFunctions.regionController import Region
+import backend.Controllers.regionController as regionController
+from backend.Controllers.regionController import Region
 router = APIRouter()
 
 @router.post("/api/region", tags=["region"])
