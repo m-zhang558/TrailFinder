@@ -21,3 +21,6 @@ def build_graph(nodes, edges):
 
     return graph
 
+def get_route(start_id, end_id, graph):
+    return nx.shortest_path(graph, start_id, end_id, weight="length")
+

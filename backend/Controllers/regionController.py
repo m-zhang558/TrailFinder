@@ -68,6 +68,8 @@ async def get_region(region) -> Response:
     try:
         nodes = supabase.rpc("get_nodes", { "lat": lat, "lon": long, "radius": radius }).execute()
         edges = supabase.rpc("get_edges", { "lat": lat, "lon": long, "radius": radius }).execute()
+        print(type(nodes.data))
+        print(type(edges.data))
         return JSONResponse(
             status_code=200,
             content={
