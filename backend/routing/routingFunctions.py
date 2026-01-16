@@ -22,5 +22,9 @@ def build_graph(nodes, edges):
     return graph
 
 def get_route(start_id, end_id, graph):
-    return nx.shortest_path(graph, start_id, end_id, weight="length")
+    path_node_id = nx.shortest_path(graph, start_id, end_id, weight="weight")
+    path_coordinates = []
+    for node in path_node_id:
+        path_coordinates.append([graph.nodes[node]["lat"], graph.nodes[node]["lon"]])
+    return path_coordinates
 
